@@ -9,6 +9,7 @@ defmodule AshJason.Transformer do
       @merge AshJason.Transformer.get_merge(dsl)
       @customize AshJason.Transformer.get_customize(dsl)
       @order AshJason.Transformer.get_order(dsl)
+      @rename AshJason.Transformer.get_rename(dsl)
 
       def encode(record, opts) do
         record
@@ -16,7 +17,8 @@ defmodule AshJason.Transformer do
         |> AshJason.Transformer.do_merge(@merge)
         |> AshJason.Transformer.do_customize(@customize, record)
         |> AshJason.Transformer.do_order(@order)
-        |> Jason.Encode.keyword(opts)
+        |> AshJason.Transformer.do_rename(@rename)
+        |> AshJason.Transformer.encode(opts)
       end
     end
 
@@ -56,6 +58,10 @@ defmodule AshJason.Transformer do
     Spark.Dsl.Transformer.get_option(dsl, [:jason], :order, false)
   end
 
+  def get_rename(dsl) do
+    Spark.Dsl.Transformer.get_option(dsl, [:jason], :rename, nil)
+  end
+
   def do_pick(record, pick) do
     for key <- pick, reduce: %{} do map ->
       case Map.get(record, key) do
@@ -88,6 +94,33 @@ defmodule AshJason.Transformer do
 
       keys when is_list(keys) ->
         keys |> Enum.filter(&Map.has_key?(map, &1)) |> Enum.map(&{&1, map[&1]})
+    end
+  end
+
+  def do_rename(list, rename) do
+    case rename do
+      renamings when is_map(renamings) ->
+        Jason.OrderedObject.new(
+          list
+          |> Enum.into([],
+            fn {key, value} ->
+              if Map.has_key?(renamings, key) do
+                {Map.get(renamings, key), value}
+              else
+                {key, value}
+              end
+            end)
+        )
+      nil ->
+        list
+    end
+  end
+
+  def encode(input, opts) do
+    if (Keyword.keyword?(input)) do
+      Jason.Encode.keyword(input, opts)
+    else
+      Jason.Encode.struct(input, opts)
     end
   end
 end

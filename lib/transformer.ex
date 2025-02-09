@@ -7,9 +7,9 @@ defmodule AshJason.Transformer do
     defimpl Jason.Encoder, for: dsl.persist.module do
       @pick AshJason.Transformer.get_pick(dsl)
       @merge AshJason.Transformer.get_merge(dsl)
+      @rename AshJason.Transformer.get_rename(dsl)
       @customize AshJason.Transformer.get_customize(dsl)
       @order AshJason.Transformer.get_order(dsl)
-      @rename AshJason.Transformer.get_rename(dsl)
 
       def encode(record, opts) do
         record
@@ -46,6 +46,10 @@ defmodule AshJason.Transformer do
     Spark.Dsl.Transformer.get_option(dsl, [:jason], :merge, %{})
   end
 
+  def get_rename(dsl) do
+    Spark.Dsl.Transformer.get_option(dsl, [:jason], :rename, nil)
+  end
+
   def get_customize(dsl) do
     Spark.Dsl.Transformer.get_option(dsl, [:jason], :customize, &AshJason.Transformer.customize_noop/2)
   end
@@ -56,10 +60,6 @@ defmodule AshJason.Transformer do
 
   def get_order(dsl) do
     Spark.Dsl.Transformer.get_option(dsl, [:jason], :order, false)
-  end
-
-  def get_rename(dsl) do
-    Spark.Dsl.Transformer.get_option(dsl, [:jason], :rename, nil)
   end
 
   def do_pick(record, pick) do
@@ -75,6 +75,14 @@ defmodule AshJason.Transformer do
 
   def do_merge(map, merge) do
     Map.merge(map, merge)
+  end
+
+  def do_rename(map, rename) do
+    if rename do
+      map |> Map.new(fn {key, value} -> {Access.get(rename, key, key), value} end) #this casts string key back to atom!
+    else
+      map
+    end
   end
 
   def do_customize(map, customize, record) do
@@ -94,14 +102,6 @@ defmodule AshJason.Transformer do
 
       keys when is_list(keys) ->
         keys |> Enum.filter(&Map.has_key?(map, &1)) |> Enum.map(&{&1, map[&1]})
-    end
-  end
-
-  def do_rename(map, rename) do
-    if rename do
-      map |> Map.new(fn {key, value} -> {Access.get(rename, key, key), value} end)
-    else
-      map
     end
   end
 end

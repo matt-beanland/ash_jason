@@ -367,4 +367,17 @@ defmodule AshJason.Test do
                "{\"id\":\"#{@id}\",\"✅\":1,\"❌\":10,\"k\":2,\"@type\":\"survey\"}"
     end
   end
+
+  describe "protocol" do
+    defresource WithProtocol do
+      jason do
+        compact true
+        rename j: :p
+      end
+    end
+
+    test "works" do
+      assert AshJason.Protocol.get_fields(%WithProtocol{id: @id, j: 1, k: 2}) == [id: @id, p: 1, k: 2]
+    end
+  end
 end

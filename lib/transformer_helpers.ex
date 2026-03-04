@@ -12,15 +12,27 @@ defmodule AshJason.TransformerHelpers do
   end
 
   def transform(dsl, get_fields) do
+    steps =
+      quote do
+        unquote(make_pick(dsl, get_fields))
+        unquote_splicing(make_steps(dsl))
+      end
+
     dsl =
       Spark.Dsl.Transformer.eval(
         dsl,
         [],
         quote do
+          defimpl AshJason.Protocol do
+            def get_fields(record) do
+              unquote(steps)
+              result
+            end
+          end
+
           defimpl Jason.Encoder do
             def encode(record, opts) do
-              unquote(make_pick(dsl, get_fields))
-              unquote_splicing(make_steps(dsl))
+              unquote(steps)
               Jason.Encode.keyword(result, opts)
             end
           end

@@ -202,6 +202,12 @@ defmodule Example.TypedStruct do
 end
 ```
 
+### Protocol
+
+Each resource or typed struct with `AshJason` extension also implements `AshJason.Protocol`.
+
+It provides a single method `get_fields` that retrieves a list of key/value field tuples following the same `AshJason`'s logic.
+
 ## Links
 
 [`Jason` docs](https://hexdocs.pm/jason).
